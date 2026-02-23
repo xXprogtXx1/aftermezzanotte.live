@@ -475,6 +475,80 @@
         nickInput.value = savedNick;
       }
     })();
+    // === CHAT SOCKET.IO (aggiungi dopo il codice esistente) ===
+const SOCKET_URL = "https://aftermezzanotte-backend.onrender.com/"; // <-- cambia con il tuo URL Render
+
+let socket;
+let myNick = "";
+
+nickBtn.addEventListener("click", () => {
+  const nick = nickInput.value.trim();
+  if (nick.length < 2 || nick.length > 18) {
+    nickError.textContent = "Nickname 2-18 caratteri.";
+    return;
+  }
+  myNick = nick;
+  localStorage.setItem("aftermezzanotte_nick", nick);
+  nickError.textContent = "";
+  
+  // Apri connessione Socket.IO
+  socket = io(SOCKET_URL);
+  
+  socket.on("connect", () => {
+    console.log("Connesso alla chat globale!");
+    socket.emit("join-global"); // opzionale, già automatico
+  });
+  
+  // Ricevi messaggi
+  socket.on("chat-message", (data) => {
+    addMessage(data.nick, data.text, data.id);
+  });
+  
+  // Apri input messaggi
+  showChatInput();
+});
+
+function showChatInput() {
+  // Nascondi il form nickname, mostra input chat
+  document.querySelector(".nick-box").style.display = "none";
+  
+  // Aggiungi input + lista messaggi (placeholder da sostituire con vero HTML)
+  const chatArea = document.createElement("div");
+  chatArea.id = "chat-area";
+  chatArea.innerHTML = `
+    <div id="messages" style="height: 400px; overflow-y: auto; background: rgba(0,0,0,0.8); border-radius: 16px; padding: 16px; margin: 12px 0; border: 1px solid rgba(255,255,255,0.1);"></div>
+    <div style="display: flex; gap: 8px;">
+      <input id="msg-input" placeholder="Scrivi un messaggio..." style="flex: 1; padding: 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.7); color: white;" />
+      <button id="send-btn" class="btn btn-primary">Invia</button>
+    </div>
+  `;
+  document.querySelector("#nick-view").appendChild(chatArea);
+  
+  // Event listener invio
+  document.getElementById("send-btn").addEventListener("click", sendMessage);
+  document.getElementById("msg-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+}
+
+function sendMessage() {
+  const input = document.getElementById("msg-input");
+  const text = input.value.trim();
+  if (text && socket && myNick) {
+    socket.emit("chat-message", { nick: myNick, text });
+    input.value = "";
+  }
+}
+
+function addMessage(nick, text, id) {
+  const messages = document.getElementById("messages");
+  const msgDiv = document.createElement("div");
+  msgDiv.style.marginBottom = "8px";
+  msgDiv.style.fontSize = "14px";
+  msgDiv.innerHTML = `<strong>${nick}</strong> <span style="color: var(--muted); font-size: 11px;">(${id})</span><br>${text}`;
+  messages.appendChild(msgDiv);
+  messages.scrollTop = messages.scrollHeight;
+}
   </script>
 </body>
 </html>
