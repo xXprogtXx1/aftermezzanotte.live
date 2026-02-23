@@ -1,88 +1,74 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>aftermezzanotte.live</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <!-- Socket.IO Client -->
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   
-  <!-- Tuoi CSS/JS -->
+  <!-- Tuoi file CSS e JS -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="glow-orb"></div>
+  <div class="container">
+    <div class="badge" id="badge">0 online</div>
+    
+    <h1 class="title" id="title">after mezzanotte</h1>
+    <p class="subtitle">La chat globale si apre a mezzanotte italiana...</p>
 
-  <main class="container">
-    <div class="badge">
-      <span class="badge-dot"></span>
-      aftermezzanotte.live · live
+    <!-- Countdown Section -->
+    <div id="countdown" class="countdown">
+      <div class="countdown-row">
+        <div class="countdown-item">
+          <span class="countdown-number" id="days">00</span>
+          <span class="countdown-label">giorni</span>
+        </div>
+        <div class="countdown-item">
+          <span class="countdown-number" id="hours">00</span>
+          <span class="countdown-label">ore</span>
+        </div>
+        <div class="countdown-item">
+          <span class="countdown-number" id="minutes">00</span>
+          <span class="countdown-label">minuti</span>
+        </div>
+        <div class="countdown-item">
+          <span class="countdown-number" id="seconds">00</span>
+          <span class="countdown-label">secondi</span>
+        </div>
+      </div>
     </div>
 
-    <h1>Ci vediamo <span>dopo mezzanotte</span>.</h1>
-    <p class="subtitle">
-      Una stanza globale, nessun login, solo nickname.  
-      La porta si apre alla mezzanotte italiana. Fino ad allora, puoi solo guardare il tempo scorrere.
-    </p>
+    <!-- Nickname Form Section -->
+    <div id="nickname" class="nickname-section hidden">
+      <form class="nickname-form" id="nicknameForm">
+        <input 
+          type="text" 
+          id="nickInput" 
+          class="nickname-input" 
+          placeholder="Il tuo nickname (2-20 caratteri)"
+          maxlength="20"
+          autocomplete="nickname"
+          required
+        >
+        <button type="submit" class="nickname-btn">Entra in chat</button>
+      </form>
+    </div>
 
-    <!-- COUNTDOWN VIEW -->
-    <section id="countdown-view">
-      <div class="countdown-box">
-        <div class="countdown-label">
-          Mancano a mezzanotte (ora italiana):
-        </div>
-        <div class="time-grid">
-          <div class="time-unit">
-            <div id="h-val" class="time-value">--</div>
-            <span>ore</span>
-          </div>
-          <div class="time-unit">
-            <div id="m-val" class="time-value">--</div>
-            <span>minuti</span>
-          </div>
-          <div class="time-unit">
-            <div id="s-val" class="time-value">--</div>
-            <span>secondi</span>
-          </div>
-          <div class="time-unit">
-            <div id="until-text" class="time-value" style="font-size:14px;">–</div>
-            <span>prossima</span>
-          </div>
-        </div>
-        <div class="info-line">
-          <span>Time zone: Europe/Rome</span>
-          <span id="now-text"></span>
+    <!-- Chat Section -->
+    <div id="chat" class="chat-section hidden">
+      <div class="chat-container">
+        <div class="messages" id="messages"></div>
+        <div class="chat-input-container">
+          <input type="text" id="chatInput" class="chat-input" placeholder="Scrivi un messaggio...">
+          <button id="sendBtn" class="send-btn">Invia</button>
         </div>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <!-- NICKNAME + CHAT VIEW -->
-    <section id="nick-view">
-      <div class="nick-box">
-        <div class="nick-label">
-          È dopo mezzanotte. Per entrare nella stanza globale scegli un nickname:
-        </div>
-        <div class="nick-row">
-          <input id="nick-input" type="text" minlength="2" maxlength="18" 
-                 placeholder="es. miczy, nightwalker, anon-13..." autocomplete="off" />
-          <button class="btn btn-primary" id="nick-continue">
-            Entra nella chat
-          </button>
-        </div>
-        <div class="nick-hint">
-          Nessun account, nessun login. Il nickname esiste solo per questa sessione.
-        </div>
-        <div id="nick-error" class="nick-error"></div>
-      </div>
-    </section>
-
-    <footer class="footer">
-      <span>aftermezzanotte.live · ora italiana</span>
-      <span>Socket.IO + Render</span>
-    </footer>
-  </main>
-
-  <script src="script.js"></script>
+  <!-- Il tuo script.js -->
+  <script src="script.js" defer></script>
 </body>
 </html>
