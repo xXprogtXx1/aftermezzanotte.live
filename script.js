@@ -1,92 +1,91 @@
+console.log('SCRIPT CARICATO!'); // Test immediato
+
 const socket = io();
 let nickname = '';
 let intervalId = null;
 
-// Ora italiana senza parsing tricky
-function getItalianHour() {
-    return new Date().toLocaleString('it-IT', { 
-        timeZone: 'Europe/Rome', 
-        hour: 'numeric', 
-        hour12: false,
-        timeZoneName: 'short'
-    });
-}
-
 function getItalianTime() {
-    return new Date().toLocaleString('it-IT-u-ca-gregory', { 
+    // FIX: Stringa ISO parsabile per ITALY
+    const opts = { 
         timeZone: 'Europe/Rome',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
         hour12: false
-    });
+    };
+    return new Date().toLocaleString('sv-SE', opts).replace(/(\d+)\/(\d+)\/(\d+), (\d+:\d+:\d+)/, '$3-$1-$2T$4');
 }
 
-// Calcola target: mezzanotte o 7:00
+function getHourIT() {
+    const timeStr = getItalianTime();
+    console.log('Ora IT parsata:', timeStr);
+    const date = new Date(timeStr);
+    return date.getHours();
+}
+
 function getTargetTime() {
-    const nowStr = getItalianTime();
-    const nowIT = new Date(nowStr);
-    const hourIT = nowIT.getHours();
-    
-    console.log('Ora italiana:', nowStr, 'Hour:', hourIT); // DEBUG
+    const hourIT = getHourIT();
+    console.log('Hour IT:', hourIT);
     
     if (hourIT >= 0 && hourIT < 7) {
-        return { type: 'open' };
-    } 
+        console.log('CHAT APERTA (00-07)');
+        return 'open';
+    }
     
-    // Dopo 7:00 → mezzanotte PROSSIMA
-    const tomorrowMidnightStr = nowIT.getFullYear() + '-' + 
-        String(nowIT.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(nowIT.getDate() + 1).padStart(2, '0') + 'T00:00:00';
-    return { type: 'countdown', target: new Date(tomorrowMidnightStr + '+01:00') };
+    console.log('COUNTDOWN a mezzanotte');
+    const nowStr = getItalianTime();
+    const nowIT = new Date(nowStr);
+    const tomorrow = new Date(nowIT);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    return tomorrow;
 }
 
-// Aggiorna timer/UI
 function updateTimer() {
     const target = getTargetTime();
     
-    if (target.type === 'open') {
-        // Chat aperta 00:00-06:59
-        if (document.getElementById('countdown-section').classList.contains('active')) {
-            document.getElementById('countdown-section').classList.remove('active');
-            document.getElementById('nickname-section').classList.add('active');
-        }
+    if (target === 'open') {
+        document.getElementById('countdown-section').classList.remove('active');
+        document.getElementById('nickname-section').classList.add('active');
         return;
     }
     
-    // Countdown
-    const nowIT = new Date(getItalianTime());
-    const diff = target.target - nowIT;
+    const nowStr = getItalianTime();
+    const nowIT = new Date(nowStr);
+    const diff = target - nowIT;
+    
+    console.log('Diff ms:', diff, 'Ora:', nowStr);
     
     if (diff > 0) {
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
         
-        document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
-        document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
-        document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+        document.getElementById('hours').textContent = h.toString().padStart(2, '0');
+        document.getElementById('minutes').textContent = m.toString().padStart(2, '0');
+        document.getElementById('seconds').textContent = s.toString().padStart(2, '0');
         
         document.getElementById('countdown-section').classList.add('active');
         document.getElementById('nickname-section').classList.remove('active');
     } else {
-        // Mezza notte: apri chat
         document.getElementById('countdown-section').classList.remove('active');
         document.getElementById('nickname-section').classList.add('active');
     }
 }
 
-// Eventi chat (invariati)
+// Eventi
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('join-btn').onclick = () => {
+    console.log('DOM pronto');
+    
+    document.getElementById('join-btn').onclick = (e) => {
+        e.preventDefault();
         nickname = document.getElementById('nickname-input').value.trim();
         if (nickname) {
             document.getElementById('nickname-section').classList.remove('active');
             document.getElementById('chat-section').classList.add('active');
-            socket.emit('chat-message', { nick: nickname, text: `${nickname} si è unito! 🌙 (${getItalianHour()})` });
+            socket.emit('chat-message', { 
+                nick: nickname, 
+                text: `${nickname} entra alle ${getItalianTime().split(' ')[1]}` 
+            });
         }
     };
 
@@ -100,17 +99,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 });
 
-// Socket.IO messaggi
+// Chat
 socket.on('chat-message', (data) => {
-    const messages = document.getElementById('messages');
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message';
-    msgDiv.innerHTML = `<strong>${data.nick}</strong> <small>${new Date(data.timestamp).toLocaleTimeString('it-IT')}</small><span>${data.text}</span>`;
-    messages.appendChild(msgDiv);
-    messages.scrollTop = messages.scrollHeight;
+    const div = document.createElement('div');
+    div.className = 'message';
+    div.innerHTML = `<strong>${data.nick}</strong> <small>${new Date(data.timestamp).toLocaleTimeString()}</small> ${data.text}`;
+    document.getElementById('messages').appendChild(div);
+    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
 });
 
-// START TIMER
-console.log('Inizio timer... Ora IT:', getItalianTime());
+// START
+console.log('Avvio timer...');
 intervalId = setInterval(updateTimer, 1000);
-updateTimer(); // Immediato
+setTimeout(updateTimer, 100); // Immediato
