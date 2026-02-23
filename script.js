@@ -1,174 +1,62 @@
-// aftermezzanotte.live - Frontend completo
-// Backend: wss://aftermezzanotte-backend.onrender.com
-const SOCKET_URL = 'wss://aftermezzanotte-backend.onrender.com';
-let socket;
-let myNick = '';
-let usersOnline = 0;
+const socket = io();
+let nickname = '';
+let intervalId;
 
-// Elementi DOM
-const countdownEl = document.getElementById('countdown-container');
-const nicknameEl = document.getElementById('nickname-container');
-const chatEl = document.getElementById('chat-container');
-const timeUnits = {
-  days: document.getElementById('days'),
-  hours: document.getElementById('hours'),
-  minutes: document.getElementById('minutes'),
-  seconds: document.getElementById('seconds')
-};
-const nickInput = document.getElementById('nickInput');
-const nickBtn = document.getElementById('nickBtn');
-const badgeEl = document.getElementById('online-badge');
-const chatMessages = document.getElementById('chatMessages');
-const chatInput = document.getElementById('chatInput');
-const sendBtn = document.getElementById('sendBtn');
-const titleEl = document.querySelector('.title');
-
-// Inizializzazione
-document.addEventListener('DOMContentLoaded', init);
-
-function init() {
-  // Carica nickname salvato
-  const savedNick = localStorage.getItem('aftermezzanotte_nick');
-  if (savedNick) {
-    myNick = savedNick;
-    nickInput.value = savedNick;
-  }
-
-  // Check ora attuale
-  if (isAfterMidnight()) {
-    showNickname();
-  } else {
-    startCountdown();
-  }
-
-  // Event listeners
-  nickBtn.addEventListener('click', handleNickname);
-  nickInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleNickname();
-  });
-  sendBtn.addEventListener('click', sendMessage);
-  chatInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessage();
-  });
+// Ora italiana
+function getItalianTime() {
+    return new Date().toLocaleString("en-US", {timeZone: "Europe/Rome"});
 }
 
-function isAfterMidnight() {
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-  todayMidnight.setTime(todayMidnight.getTime() + (now.getTimezoneOffset() * 60000)); // Local offset
-  const italyOffset = now.toLocaleString("it-IT", {timeZone: "Europe/Rome"}).includes('CEST') ? 2 : 1;
-  todayMidnight.setHours(todayMidnight.getHours() + italyOffset);
-  return now >= todayMidnight;
-}
-
-function startCountdown() {
-  countdownEl.classList.remove('hidden');
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
-}
-
+// Countdown
 function updateCountdown() {
-  const now = new Date();
-  const italyNow = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Rome"}));
-  const tomorrowMidnight = new Date(italyNow);
-  tomorrowMidnight.setDate(tomorrowMidnight.getDate() + 1);
-  tomorrowMidnight.setHours(0, 0, 0, 0);
+    const nowIT = new Date(getItalianTime());
+    let midnightIT = new Date(nowIT.getFullYear(), nowIT.getMonth(), nowIT.getDate(), 24, 0, 0);
+    if (nowIT > midnightIT) midnightIT.setDate(midnightIT.getDate() + 1);
 
-  const diff = tomorrowMidnight - italyNow;
-  if (diff <= 0) {
-    showNickname();
-    return;
-  }
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-  timeUnits.days.textContent = days.toString().padStart(2, '0');
-  timeUnits.hours.textContent = hours.toString().padStart(2, '0');
-  timeUnits.minutes.textContent = minutes.toString().padStart(2, '0');
-  timeUnits.seconds.textContent = seconds.toString().padStart(2, '0');
-
-  // Update badge con stima utenti (prima della chat)
-  badgeEl.textContent = `${usersOnline || '?'} online`;
+    const diff = midnightIT - nowIT;
+    if (diff > 0) {
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+        document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+        document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+    } else {
+        clearInterval(intervalId);
+        document.getElementById('countdown-section').classList.remove('active');
+        document.getElementById('nickname-section').classList.add('active');
+    }
 }
 
-function showNickname() {
-  countdownEl.classList.add('hidden');
-  nicknameEl.classList.remove('hidden');
-  titleEl.textContent = 'aftermezzanotte.live';
-  nickInput.focus();
-}
+// Eventi
+document.getElementById('join-btn').onclick = () => {
+    nickname = document.getElementById('nickname-input').value.trim();
+    if (nickname) {
+        document.getElementById('nickname-section').classList.remove('active');
+        document.getElementById('chat-section').classList.add('active');
+        socket.emit('chat-message', { nick: nickname, text: `${nickname} si è unito alla chat!` });
+    }
+};
 
-function handleNickname() {
-  const nick = nickInput.value.trim();
-  if (nick && nick.length >= 2 && nick.length <= 20) {
-    myNick = nick;
-    localStorage.setItem('aftermezzanotte_nick', nick);
-    initChat();
-  } else {
-    alert('Nickname: 2-20 caratteri');
-    nickInput.focus();
-  }
-}
+document.getElementById('message-form').onsubmit = (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('message-input').value.trim();
+    if (msg && nickname) {
+        socket.emit('chat-message', { nick: nickname, text: msg });
+        document.getElementById('message-input').value = '';
+    }
+};
 
-function initChat() {
-  nicknameEl.classList.add('hidden');
-  chatEl.classList.remove('hidden');
-  titleEl.textContent = `Benvenuto, ${myNick}`;
-
-  // Connetti Socket.IO
-  socket = io(SOCKET_URL, {
-    transports: ['websocket'],
-    timeout: 10000
-  });
-
-  socket.on('connect', () => {
-    console.log('🟢 Connesso a aftermezzanotte');
-    socket.emit('join', myNick);
-  });
-
-  socket.on('usersUpdate', (count) => {
-    usersOnline = count;
-    badgeEl.textContent = `${count} online`;
-  });
-
-  socket.on('message', (data) => {
-    addMessage(data.nick, data.message);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('🔴 Disconnesso');
-    badgeEl.textContent = 'Riconnessione...';
-  });
-
-  chatInput.focus();
-}
-
-function sendMessage() {
-  const message = chatInput.value.trim();
-  if (message && socket && myNick) {
-    socket.emit('message', { nick: myNick, message });
-    chatInput.value = '';
-  }
-}
-
-function addMessage(nick, message) {
-  const div = document.createElement('div');
-  div.className = 'message';
-  div.innerHTML = `<strong>${escapeHtml(nick)}:</strong> ${escapeHtml(message)}`;
-  chatMessages.appendChild(div);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Cleanup on unload
-window.addEventListener('beforeunload', () => {
-  if (socket) socket.disconnect();
+// Socket.IO
+socket.on('chat-message', (data) => {
+    const messages = document.getElementById('messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message';
+    msgDiv.innerHTML = `<strong>${data.nick}</strong><small>${new Date(data.timestamp).toLocaleTimeString('it-IT')}</small> <span>${data.text}</span>`;
+    messages.appendChild(msgDiv);
+    messages.scrollTop = messages.scrollHeight;
 });
+
+// Inizializza
+intervalId = setInterval(updateCountdown, 1000);
+updateCountdown();
