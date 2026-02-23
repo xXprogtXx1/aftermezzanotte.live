@@ -1,74 +1,63 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>aftermezzanotte.live</title>
-  
-  <!-- Socket.IO Client -->
-  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-  
-  <!-- Tuoi file CSS e JS -->
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AfterMezzanotte.live - Chat Globale</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="container">
-    <div class="badge" id="badge">0 online</div>
-    
-    <h1 class="title" id="title">after mezzanotte</h1>
-    <p class="subtitle">La chat globale si apre a mezzanotte italiana...</p>
+    <div class="container">
+        <header>
+            <h1>🌙 AfterMezzanotte</h1>
+            <p>Chat globale attiva dopo mezzanotte italiana</p>
+        </header>
 
-    <!-- Countdown Section -->
-    <div id="countdown" class="countdown">
-      <div class="countdown-row">
-        <div class="countdown-item">
-          <span class="countdown-number" id="days">00</span>
-          <span class="countdown-label">giorni</span>
-        </div>
-        <div class="countdown-item">
-          <span class="countdown-number" id="hours">00</span>
-          <span class="countdown-label">ore</span>
-        </div>
-        <div class="countdown-item">
-          <span class="countdown-number" id="minutes">00</span>
-          <span class="countdown-label">minuti</span>
-        </div>
-        <div class="countdown-item">
-          <span class="countdown-number" id="seconds">00</span>
-          <span class="countdown-label">secondi</span>
-        </div>
-      </div>
+        <!-- Countdown -->
+        <section id="countdown-section" class="section active">
+            <div class="countdown-container">
+                <div class="countdown-circle">
+                    <div class="countdown" id="countdown">
+                        <div class="time-unit">
+                            <span id="hours">00</span>
+                            <span>Ore</span>
+                        </div>
+                        <div class="time-unit">
+                            <span id="minutes">00</span>
+                            <span>Min</span>
+                        </div>
+                        <div class="time-unit">
+                            <span id="seconds">00</span>
+                            <span>Sec</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Nickname -->
+        <section id="nickname-section" class="section">
+            <div class="form-group">
+                <input type="text" id="nickname-input" placeholder="Il tuo nickname..." maxlength="20" autocomplete="off">
+                <button id="join-btn">Entra in Chat 🚀</button>
+            </div>
+        </section>
+
+        <!-- Chat -->
+        <section id="chat-section" class="section">
+            <div class="chat-header">
+                <span id="online-count">0 online</span>
+            </div>
+            <div id="messages" class="messages"></div>
+            <form id="message-form" class="message-form">
+                <input type="text" id="message-input" placeholder="Scrivi un messaggio..." maxlength="500" autocomplete="off">
+                <button type="submit">Invia ➤</button>
+            </form>
+        </section>
     </div>
 
-    <!-- Nickname Form Section -->
-    <div id="nickname" class="nickname-section hidden">
-      <form class="nickname-form" id="nicknameForm">
-        <input 
-          type="text" 
-          id="nickInput" 
-          class="nickname-input" 
-          placeholder="Il tuo nickname (2-20 caratteri)"
-          maxlength="20"
-          autocomplete="nickname"
-          required
-        >
-        <button type="submit" class="nickname-btn">Entra in chat</button>
-      </form>
-    </div>
-
-    <!-- Chat Section -->
-    <div id="chat" class="chat-section hidden">
-      <div class="chat-container">
-        <div class="messages" id="messages"></div>
-        <div class="chat-input-container">
-          <input type="text" id="chatInput" class="chat-input" placeholder="Scrivi un messaggio...">
-          <button id="sendBtn" class="send-btn">Invia</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Il tuo script.js -->
-  <script src="script.js" defer></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
